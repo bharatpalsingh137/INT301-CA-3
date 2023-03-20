@@ -1,0 +1,781 @@
+ <xs:enumeration value="&lt;&gt;" />
+      <xs:enumeration value="&gt;=" />
+      <xs:enumeration value="&gt;" />
+      <xs:enumeration value="IS NULL" />
+      <xs:enumeration value="IS NOT NULL" />
+      <xs:enumeration value="&lt;=" />
+      <xs:enumeration value="&lt;" />
+      <xs:enumeration value="NOT" />
+      <xs:enumeration value="OR" />
+      <xs:enumeration value="Range" />
+    </xs:restriction>
+    -->
+  </xs:simpleType>
+  <xs:group name="SQLExpression-G">
+    <xs:sequence>
+      <!-- $NOTE-cchalmers-2015-11-25: TFS 452790 tracks using a more specific tag name -->
+      <xs:element name="expression">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group maxOccurs="unbounded" minOccurs="0" ref="SQLExpression-G"/>
+          </xs:sequence>
+          <xs:attribute name="op" type="Op-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Sort-G">
+    <!--?IF SortTagCleanup -->
+    <xs:choice>
+      <xs:group ref="Sort-ComputedSort-G"/>
+      <xs:group ref="Sort-ManualSort-G"/>
+      <xs:group ref="Sort-Natural-G"/>
+      <xs:group ref="Sort-Alphabetic-G"/>
+    </xs:choice>
+    <!--?ELSE -->
+    <xs:sequence>
+      <xs:group ref="Sort-OldSort-G"/>
+    </xs:sequence>
+    <!--?END -->
+  </xs:group>
+  <xs:group name="ClearSort-G">
+    <xs:sequence>
+      <xs:element name="clear-sort">
+        <xs:complexType>
+          <xs:attribute name="column" type="Sort-FieldName-ST"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!-- Local and inline definitions below -->
+  <!--?IF SortTagCleanup -->
+  <xs:group name="Sort-ComputedSort-G">
+    <xs:sequence>
+      <xs:element name="computed-sort">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group maxOccurs="unbounded" minOccurs="0" ref="SetFunction-G"/>
+          </xs:sequence>
+          <xs:attributeGroup ref="Sort-CommonAttributes-AG"/>
+          <xs:attribute name="using" type="Sort-FieldName-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Sort-ManualSort-G">
+    <xs:sequence>
+      <xs:element name="manual-sort">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="dictionary" type="BucketList-CT"/>
+          </xs:sequence>
+          <xs:attributeGroup ref="Sort-CommonAttributes-AG"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Sort-Natural-G">
+    <xs:sequence>
+      <xs:element name="natural-sort">
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Sort-Alphabetic-G">
+    <xs:sequence>
+      <xs:element name="alphabetic-sort">
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!--?ELSE -->
+  <xs:group name="Sort-OldSort-G">
+    <xs:sequence>
+      <xs:element name="sort">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- for class="computed" -->
+            <xs:group maxOccurs="unbounded" minOccurs="0" ref="SetFunction-G"/>
+            <!-- for class="manual" -->
+            <xs:element minOccurs="0" name="dictionary" type="BucketList-CT"/>
+          </xs:sequence>
+          <xs:attribute name="column" type="Sort-FieldName-ST" use="required"/>
+          <xs:attribute name="direction" type="SortDirection-ST" use="required"/>
+          <xs:attribute name="class" type="SortType-ST" use="required"/>
+          <!-- for class="computed" -->
+          <xs:attribute name="using" type="Sort-FieldName-ST"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!--?END -->
+  <xs:simpleType name="Sort-FieldName-ST">
+    <!--
+    The formatter doesn't use FormatQualifiedName, but it calls GetFullValue on a FieldName, which
+    is a QualifiedName, and that's what FormatQualifiedName does too
+    -->
+    <xs:restriction base="QualifiedName-ST"/>
+  </xs:simpleType>
+  <xs:attributeGroup name="Sort-CommonAttributes-AG">
+    <xs:attribute name="column" type="Sort-FieldName-ST" use="required"/>
+    <xs:attribute name="direction" type="SortDirection-ST" use="required"/>
+  </xs:attributeGroup>
+  <xs:simpleType name="DataScaling-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="standardized"/>
+      <xs:enumeration value="normalized"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="Fields-CT">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="column">
+        <xs:complexType>
+          <xs:attribute name="name" type="FullValue-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="StatisticalModel-NumClusters-ST">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:group name="UnsupervisedModel-G">
+    <xs:sequence>
+      <xs:element name="model-specification">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="analysis-fields" type="Fields-CT"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="StatisticalModel-G">
+    <xs:sequence>
+      <!-- minOccurs=0 because Visit(OutlierAnalysisModel) doesn't output anything -->
+      <xs:element minOccurs="0" name="statistical-model">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group ref="UnsupervisedModel-G"/>
+            <xs:element name="model-summary">
+              <xs:complexType>
+                <!--
+                $MARK-cchalmers-2015-06-30: This sequence is required in the "Output both
+                specification and results" case. See comment below. Tracked by TFS 532979
+                -->
+                <xs:sequence minOccurs="0">
+                  <xs:group ref="StatisticalModel-Clusters-G"/>
+                  <xs:group ref="StatisticalModel-ANOVA-G"/>
+                </xs:sequence>
+                <!--
+                $MARK-cchalmers-2015-06-30: All of these attributes are required in the "Output
+                both specification and results" case. Unfortunately, they might be missing in the
+                "just output the cluster specification" case, and both cases use the same tag
+                name, so they must be optional here. Fixing this is tracked by TFS 532979
+                -->
+                <xs:attribute name="num-rows" type="xs:int"/>
+                <xs:attribute name="num-cols" type="xs:int"/>
+                <xs:attribute name="num-desired-clusters" type="StatisticalModel-NumClusters-ST" use="required"/>
+                <xs:attribute name="num-clusters" type="xs:int"/>
+                <xs:attribute name="num-outliers" type="xs:int"/>
+                <xs:attribute name="num-not-clustered" type="xs:int"/>
+                <xs:attribute name="between-group-sum-of-squared" type="Double-ST"/>
+                <xs:attribute name="within-group-sum-of-squares" type="Double-ST"/>
+                <xs:attribute name="total-sum-of-squares" type="Double-ST"/>
+                <xs:attribute name="estimate-nulls" type="xs:boolean"/>
+                <xs:attribute name="scaling" type="DataScaling-ST"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+          <xs:attribute name="class" type="StatisticalModelClass-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!-- local and inline definitions below -->
+  <xs:group name="StatisticalModel-Clusters-G">
+    <xs:sequence>
+      <xs:element name="clusters">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group maxOccurs="unbounded" minOccurs="0" ref="StatisticalModel-Cluster-G"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="StatisticalModel-Cluster-G">
+    <xs:sequence>
+      <xs:element name="cluster">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="derivedcolumn">
+              <xs:complexType>
+                <xs:attribute name="mean" type="Double-ST" use="required"/>
+                <xs:attribute name="std-dev" type="Double-ST" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+          <xs:attribute name="size" type="xs:int" use="required"/>
+          <xs:attribute name="outlier-cutoff" type="Double-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="StatisticalModel-ANOVA-G">
+    <xs:sequence>
+      <xs:element name="anova">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="derivedcolumn">
+              <xs:complexType>
+                <xs:attribute name="cluster-df" type="xs:int" use="required"/>
+                <xs:attribute name="cluster-ss" type="Double-ST" use="required"/>
+                <xs:attribute name="cluster-ms" type="Double-ST" use="required"/>
+                <xs:attribute name="error-df" type="xs:int" use="required"/>
+                <xs:attribute name="error-ss" type="Double-ST" use="required"/>
+                <xs:attribute name="error-ms" type="Double-ST" use="required"/>
+                <xs:attribute name="f-statistic" type="Double-ST" use="required"/>
+                <xs:attribute name="p-value" type="Double-ST" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!--
+  $NOTE-cchalmers-2016-06-13: This should be called "DeltaType" or "StoryDeltaType", but the C++
+  encoder is poorly named and we must match it
+  -->
+  <xs:simpleType name="StoryDelta-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="added"/>
+      <xs:enumeration value="edited"/>
+      <xs:enumeration value="removed"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!--
+      In general, encodings should be in the same file as the formatter to match the C++ code
+      But separation is required here to avoid circular include between Stylesheet.xsd and Encoding.xsd
+  -->
+  <xs:simpleType name="StyleElement-ST">
+    <xs:restriction base="xs:string">
+      <!--?IF MarkAnimation -->
+      <xs:enumeration value="animation"/>
+      <!--?END -->
+      <xs:enumeration value="axis"/>
+      <xs:enumeration value="cell"/>
+      <xs:enumeration value="datalabel"/>
+      <xs:enumeration value="dropspot"/>
+      <xs:enumeration value="header"/>
+      <xs:enumeration value="field-labels"/>
+      <xs:enumeration value="field-labels-decoration"/>
+      <xs:enumeration value="field-labels-spanner"/>
+      <xs:enumeration value="label"/>
+      <xs:enumeration value="mark"/>
+      <xs:enumeration value="page-card-body"/>
+      <xs:enumeration value="pane"/>
+      <xs:enumeration value="table"/>
+      <xs:enumeration value="worksheet"/>
+      <xs:enumeration value="basesheet"/>
+      <xs:enumeration value="dashboard"/>
+      <xs:enumeration value="storyboard"/>
+      <xs:enumeration value="caption"/>
+      <xs:enumeration value="dropline"/>
+      <xs:enumeration value="refline"/>
+      <xs:enumeration value="refband"/>
+      <xs:enumeration value="refboxplot"/>
+      <xs:enumeration value="gridline"/>
+      <xs:enumeration value="zeroline"/>
+      <xs:enumeration value="trendline"/>
+      <xs:enumeration value="table-div"/>
+      <xs:enumeration value="header-div"/>
+      <xs:enumeration value="mapped-image"/>
+      <xs:enumeration value="action"/>
+      <xs:enumeration value="title"/>
+      <xs:enumeration value="legend"/>
+      <xs:enumeration value="legend-title"/>
+      <xs:enumeration value="legend-title-text"/>
+      <xs:enumeration value="axis-title"/>
+      <xs:enumeration value="annotation"/>
+      <xs:enumeration value="dash-title"/>
+      <xs:enumeration value="dash-subtitle"/>
+      <xs:enumeration value="dash-text"/>
+      <xs:enumeration value="dash-zone"/>
+      <xs:enumeration value="dash-container"/>
+      <xs:enumeration value="scrollbar"/>
+      <xs:enumeration value="map-layer"/>
+      <xs:enumeration value="map"/>
+      <xs:enumeration value="map-data-layer"/>
+      <xs:enumeration value="quick-filter"/>
+      <xs:enumeration value="quick-filter-title"/>
+      <xs:enumeration value="data-highlighter"/>
+      <xs:enumeration value="data-highlighter-title"/>
+      <xs:enumeration value="parameter-ctrl"/>
+      <xs:enumeration value="parameter-ctrl-title"/>
+      <xs:enumeration value="page-card-title"/>
+      <xs:enumeration value="story-title"/>
+      <xs:enumeration value="story-description"/>
+      <xs:enumeration value="story-point-caption"/>
+      <xs:enumeration value="tooltip"/>
+      <xs:enumeration value="all"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleAttribute-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="alternate-text"/>
+      <xs:enumeration value="alt-mark-color"/>
+      <!--?IF MarkAnimation -->
+      <xs:enumeration value="animation-on"/>
+      <xs:enumeration value="animation-duration"/>
+      <xs:enumeration value="animation-style"/>
+      <!--?END -->
+      <xs:enumeration value="aspect"/>
+      <xs:enumeration value="auto-subtitle"/>
+      <xs:enumeration value="background-color"/>
+      <xs:enumeration value="background-transparency"/>
+      <xs:enumeration value="band-size"/>
+      <xs:enumeration value="band-color"/>
+      <xs:enumeration value="band-level"/>
+      <xs:enumeration value="body-type"/>
+      <xs:enumeration value="border-color"/>
+      <xs:enumeration value="border-color-top"/>
+      <xs:enumeration value="border-color-right"/>
+      <xs:enumeration value="border-color-bottom"/>
+      <xs:enumeration value="border-color-left"/>
+      <xs:enumeration value="border-style"/>
+      <xs:enumeration value="border-style-top"/>
+      <xs:enumeration value="border-style-right"/>
+      <xs:enumeration value="border-style-bottom"/>
+      <xs:enumeration value="border-style-left"/>
+      <xs:enumeration value="border-width"/>
+      <xs:enumeration value="border-width-top"/>
+      <xs:enumeration value="border-width-right"/>
+      <xs:enumeration value="border-width-bottom"/>
+      <xs:enumeration value="border-width-left"/>
+      <xs:enumeration value="break-on-special"/>
+      <xs:enumeration value="cell"/>
+      <xs:enumeration value="cell-w"/>
+      <xs:enumeration value="cell-h"/>
+      <xs:enumeration value="cell-q"/>
+      <xs:enumeration value="cell-qmark"/>
+      <xs:enumeration value="color"/>
+      <xs:enumeration value="color-mode"/>
+      <xs:enumeration value="col-levels"/>
+      <xs:enumeration value="col-vert-levels"/>
+      <xs:enumeration value="col-horiz-height"/>
+      <xs:enumeration value="col-vert-height"/>
+      <xs:enumeration value="col-height"/>
+      <xs:enumeration value="col-width"/>
+      <xs:enumeration value="content"/>
+      <!--?IF Heatmap -->
+      <xs:enumeration value="density-color"/>
+      <xs:enumeration value="density-kernel-size"/>
+      <xs:enumeration value="density-intensity"/>
+      <xs:enumeration value="density-max-value"/>
+      <!--?END -->
+      <xs:enumeration value="display-field-labels"/>
+      <xs:enumeration value="display"/>
+      <xs:enumeration value="display-alternate-text"/>
+      <xs:enumeration value="div-level"/>
+      <xs:enumeration value="enabled"/>
+      <xs:enumeration value="fill-above"/>
+      <xs:enumeration value="fill-below"/>
+      <xs:enumeration value="fill-color"/>
+      <xs:enumeration value="fog-bg-color"/>
+      <xs:enumeration value="fog-desaturation-without-selection"/>
+      <xs:enumeration value="fog-desaturation-with-selection"/>
+      <xs:enumeration value="font-family"/>
+      <xs:enumeration value="font-size"/>
+      <xs:enumeration value="font-style"/>
+      <xs:enumeration value="font-weight"/>
+      <xs:enumeration value="geo-area-type"/>
+      <xs:enumeration value="halign"/>
+      <xs:enumeration value="halo-color"/>
+      <xs:enumeration value="halo-color-selected"/>
+      <xs:enumeration value="has-label"/>
+      <xs:enumeration value="has-fill"/>
+      <xs:enumeration value="has-stroke"/>
+      <xs:enumeration value="has-halo"/>
+      <xs:enumeration value="height"/>
+      <xs:enumeration value="height-header"/>
+      <xs:enumeration value="highlight-legend"/>
+      <xs:enumeration value="hnaxis"/>
+      <xs:enumeration value="hnlabel"/>
+      <xs:enumeration value="in-tooltip"/>
+      <xs:enumeration value="line-end"/>
+      <xs:enumeration value="line-end-size"/>
+      <xs:enumeration value="line-interpolation"/>
+      <xs:enumeration value="line-marker-position"/>
+      <xs:enumeration value="line-pattern"/>
+      <xs:enumeration value="line-pattern-only"/>
+      <xs:enumeration value="line-visibility"/>
+      <xs:enumeration value="map"/>
+      <xs:enumeration value="map-style"/>
+      <!--?IF MapboxVectorStylesAndLayers -->
+      <xs:enumeration value="map-snap-zoom"/>
+      <!--?END -->
+      <xs:enumeration value="margin"/>
+      <xs:enumeration value="margin-top"/>
+      <xs:enumeration value="margin-right"/>
+      <xs:enumeration value="margin-bottom"/>
+      <xs:enumeration value="margin-left"/>
+      <xs:enumeration value="mark-color"/>
+      <xs:enumeration value="mark-transparency"/>
+      <xs:enumeration value="mark-markers-mode"/>
+      <xs:enumeration value="mark-labels-show"/>
+      <xs:enumeration value="mark-labels-mode"/>
+      <xs:enumeration value="mark-labels-cull"/>
+      <xs:enumeration value="mark-labels-line-first"/>
+      <xs:enumeration value="mark-labels-line-last"/>
+      <xs:enumeration value="mark-labels-range-min"/>
+      <xs:enumeration value="mark-labels-range-max"/>
+      <xs:enumeration value="mark-labels-range-scope"/>
+      <xs:enumeration value="mark-labels-range-field"/>
+      <xs:enumeration value="maxheight"/>
+      <xs:enumeration value="max-font-size"/>
+      <xs:enumeration value="max-stroke-width"/>
+      <xs:enumeration value="maxwidth"/>
+      <xs:enumeration value="middle-stroke-width"/>
+      <xs:enumeration value="minheight"/>
+      <xs:enumeration value="min-font-size"/>
+      <xs:enumeration value="min-stroke-width"/>
+      <xs:enumeration value="minwidth"/>
+      <xs:enumeration value="nonhighlight-color"/>
+      <xs:enumeration value="min-length"/>
+      <xs:enumeration value="min-map-size"/>
+      <xs:enumeration value="min-size"/>
+      <xs:enumeration value="omit-on-special"/>
+      <xs:enumeration value="orientation"/>
+      <xs:enumeration value="padding"/>
+      <xs:enumeration value="padding-top"/>
+      <xs:enumeration value="padding-right"/>
+      <xs:enumeration value="padding-bottom"/>
+      <xs:enumeration value="padding-left"/>
+      <xs:enumeration value="palette"/>
+      <xs:enumeration value="render-fold-reversed"/>
+      <xs:enumeration value="reverse-palette"/>
+      <xs:enumeration value="rounding"/>
+      <xs:enumeration value="row-horiz-levels"/>
+      <xs:enumeration value="row-horiz-width"/>
+      <xs:enumeration value="row-levels"/>
+      <xs:enumeration value="row-vert-width"/>
+      <xs:enumeration value="separator"/>
+      <xs:enumeration value="shape"/>
+      <xs:enumeration value="show-labels"/>
+      <xs:enumeration value="show-null-value-warning"/>
+      <xs:enumeration value="size"/>
+      <xs:enumeration value="size-bar"/>
+      <xs:enumeration value="smart-auto-align"/>
+      <xs:enumeration value="space"/>
+      <xs:enumeration value="stroke-color"/>
+      <xs:enumeration value="stroke-size"/>
+      <xs:enumeration value="subtitle"/>
+      <xs:enumeration value="text-align"/>
+      <xs:enumeration value="text-align-default"/>
+      <xs:enumeration value="text-decoration"/>
+      <xs:enumeration value="text-indent"/>
+      <xs:enumeration value="text-orientation"/>
+      <xs:enumeration value="text-format"/>
+      <xs:enumeration value="tick-color"/>
+      <xs:enumeration value="tick-length"/>
+      <xs:enumeration value="tick-spacing"/>
+      <xs:enumeration value="total-label"/>
+      <xs:enumeration value="title"/>
+      <xs:enumeration value="washout"/>
+      <xs:enumeration value="width"/>
+      <xs:enumeration value="width-header"/>
+      <xs:enumeration value="wrap"/>
+      <xs:enumeration value="valign"/>
+      <!--?IF VariableWidthColumns -->
+      <xs:enumeration value="variable-width-columns-on"/>
+      <xs:enumeration value="variable-width-columns-size"/>
+      <!--?END -->
+      <xs:enumeration value="vertical-align"/>
+      <xs:enumeration value="vertical-align-default"/>
+      <xs:enumeration value="vnaxis"/>
+      <xs:enumeration value="vnlabel"/>
+      <xs:enumeration value="zoom"/>
+      <xs:enumeration value="whisker-stroke-size"/>
+      <xs:enumeration value="whisker-stroke-color"/>
+      <xs:enumeration value="whisker-end"/>
+      <xs:enumeration value="boxplot-style"/>
+      <xs:enumeration value="opacity"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StylePseudoClass-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="selected"/>
+      <xs:enumeration value="highlighted"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleEncodingType-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="diverging"/>
+      <xs:enumeration value="palette"/>
+      <xs:enumeration value="interpolated"/>
+      <xs:enumeration value="shape"/>
+      <xs:enumeration value="space"/>
+      <xs:enumeration value="catsize"/>
+      <xs:enumeration value="cat-highlight"/>
+      <xs:enumeration value="quantsize"/>
+      <xs:enumeration value="rangesize"/>
+      <xs:enumeration value="centersize"/>
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="custom-interpolated"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleDataClass-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="total"/>
+      <xs:enumeration value="subtotal"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleFieldScope-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="rows"/>
+      <xs:enumeration value="cols"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleSwatch-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="light"/>
+      <xs:enumeration value="dark"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StyleTheme-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="classic"/>
+      <xs:enumeration value="modern"/>
+      <xs:enumeration value="clean"/>
+      <xs:enumeration value="smooth"/>
+      <xs:enumeration value="custom"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!--
+      Used to validate XML from both OutputStylesheet and OutputElements
+  -->
+  <xs:group name="Stylesheet-G">
+    <xs:sequence>
+      <xs:element name="style">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="style-rule">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:group maxOccurs="unbounded" minOccurs="0" ref="Attribute-G"/>
+                </xs:sequence>
+                <xs:attribute name="element" type="StyleElement-ST" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+          <xs:attribute name="delta-type" type="StoryDelta-ST"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Attribute-G">
+    <xs:sequence>
+      <xs:choice minOccurs="0">
+        <xs:group ref="Format-G"/>
+        <xs:group ref="Encoding-G"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Format-G">
+    <xs:sequence>
+      <xs:element name="format">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group minOccurs="0" ref="FormattedText-G"/>
+          </xs:sequence>
+          <xs:attribute name="attr" type="StyleAttribute-ST" use="required"/>
+          <xs:attribute name="value" type="xs:string" use="required"/>
+          <xs:attribute name="class" type="xs:string"/>
+          <xs:attribute name="id" type="xs:string"/>
+          <xs:attribute name="data-class" type="StyleDataClass-ST"/>
+          <xs:attribute name="scope" type="StyleFieldScope-ST"/>
+          <xs:attribute name="field" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!-- From TableCalcEnumsEncoder.cpp -->
+  <xs:simpleType name="TCType-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="CumTotal"/>
+      <xs:enumeration value="WindowTotal"/>
+      <xs:enumeration value="Difference"/>
+      <xs:enumeration value="PctDiff"/>
+      <xs:enumeration value="PctValue"/>
+      <xs:enumeration value="PctTotal"/>
+      <xs:enumeration value="Rank"/>
+      <xs:enumeration value="PctRank"/>
+      <xs:enumeration value="Custom"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="OrderingType-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Table"/>
+      <xs:enumeration value="TableCol"/>
+      <xs:enumeration value="Rows"/>
+      <xs:enumeration value="Columns"/>
+      <xs:enumeration value="Pane"/>
+      <xs:enumeration value="PaneCol"/>
+      <xs:enumeration value="RowInPane"/>
+      <xs:enumeration value="ColumnInPane"/>
+      <xs:enumeration value="CellInPane"/>
+      <xs:enumeration value="Field"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- Flags -->
+  <xs:simpleType name="WindowOptions-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="IncludeCurrent"/>
+      <xs:enumeration value="NullIfIncomplete"/>
+      <xs:enumeration value="IncludeCurrent,NullIfIncomplete"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="DifferenceOptions-ST">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(Fixed|Relative)(,(Parameter|Compounded))*"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PctTotalOptions-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="IncludePages"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="RankOptions-ST">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(Unique|Competition|ModifiedCompetition|Dense),(Ascending|Descending)"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CustomOptions-ST">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(UsePartitionDomain|Parameter|Fixed|NullIfIncomplete|IncludePages)(,(UsePartitionDomain|Parameter|Fixed|NullIfIncomplete|IncludePages))*"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- This is output by OutputSpec() and OutputProperties() -->
+  <xs:group name="TableCalc-G">
+    <xs:sequence>
+      <xs:element name="table-calc">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group minOccurs="0" ref="TableCalcProp-OrderingFields-G"/>
+            <xs:group minOccurs="0" ref="TableCalcProp-Address-G"/>
+          </xs:sequence>
+          <xs:attribute name="field" type="QualifiedName-ST"/>
+          <xs:attribute name="ordering-type" type="OrderingType-ST" use="required"/>
+          <xs:attribute name="ordering-field" type="QualifiedName-ST"/>
+          <xs:attribute name="level-break" type="QualifiedName-ST"/>
+          <xs:attribute name="level-address" type="QualifiedName-ST"/>
+          <xs:attribute name="aggregation" type="AggType-ST"/>
+          <xs:attribute name="type" type="TCType-ST"/>
+          <xs:attribute name="from" type="DataValue-ST"/>
+          <xs:attribute name="to" type="DataValue-ST"/>
+          <xs:attribute name="window-options" type="WindowOptions-ST"/>
+          <xs:attribute name="diff-options" type="DifferenceOptions-ST"/>
+          <xs:attribute name="pcttotal-options" type="PctTotalOptions-ST"/>
+          <xs:attribute name="rank-options" type="RankOptions-ST"/>
+          <xs:attribute name="tc-options" type="CustomOptions-ST"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <!-- Local and inline definitions below -->
+  <xs:group name="TableCalcProp-OrderingFields-G">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="order">
+        <xs:complexType>
+          <xs:attribute name="field" type="QualifiedName-ST"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element minOccurs="0" name="sort">
+        <xs:complexType>
+          <xs:attribute name="using" type="QualifiedName-ST" use="required"/>
+          <xs:attribute name="direction" type="SortDirection-ST" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="TableCalcProp-Address-G">
+    <xs:sequence>
+      <xs:element name="address">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="value" type="DataValue-ST"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:simpleType name="OSShortName-ST">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="win"/>
+      <xs:enumeration value="mac"/>
+      <xs:enumeration value="linux"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!--
+This is output by VersionNumber::GetAsString(). The code allows for different seperator
+charcaters to be used beyond the . and -, but at present, those characters are hard-coded
+as passed-in parameters.
+-->
+  <xs:simpleType name="VersionNumber-ST">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(\d+)((\.)(\d+))*((-)(\d+))*"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:group name="Group-G">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="group">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:group ref="SetFunction-G"/>
+            <xs:element minOccurs="0" name="desc">
+              <xs:complexType>
+                <xs:group ref="FormattedText-G"/>
+              </xs:complexType>
+            </xs:element>
+            <xs:group minOccurs="0" ref="DataSource-Aliases-G"/>
+          </xs:sequence>
+          <xs:attribute name="name" type="QualifiedName-ST" use="required"/>
+          <xs:attribute name="name-style"/>
+          <xs:attribute name="delimiter" type="xs:string"/>
+          <xs:attribute name="caption" type="xs:string"/>
+          <xs:attribute name="pivot" type="PivotStrategy-ST"/>
+          <xs:attribute name="descend" type="xs:boolean"/>
+          <xs:attribute name="hidden" type="xs:boolean"/>
+          <xs:attribute name="auto-hidden" type="xs:boolean"/>
+          <xs:attribute name="layered" type="xs:boolean"/>
+          <xs:attributeGroup ref="user:UserAttributes-AG"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Groups-G">
+    <xs:sequence>
+      <xs:group maxOccurs="unbounded" minOccurs="0" ref="Group-G"/>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Aliases-G">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="aliases">
+        <xs:complexType>
+          <xs:attribute name="enabled" type="DataSource-YesNo-ST"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+  <xs:group name="Colu

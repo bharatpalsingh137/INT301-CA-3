@@ -1,0 +1,66 @@
+tatype">attribute set</refmiscinfo>
+</refmeta>
+<refnamediv>
+<refname>margin.note.title.properties</refname>
+<refpurpose>Attribute set for margin note titles</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+<programlisting xml:id="margin.note.title.properties.frag">
+&lt;xsl:attribute-set name="margin.note.title.properties"&gt;
+  &lt;xsl:attribute name="font-weight"&gt;bold&lt;/xsl:attribute&gt;
+  &lt;xsl:attribute name="hyphenate"&gt;false&lt;/xsl:attribute&gt;
+  &lt;xsl:attribute name="text-align"&gt;start&lt;/xsl:attribute&gt;
+  &lt;xsl:attribute name="keep-with-next.within-column"&gt;always&lt;/xsl:attribute&gt;
+&lt;/xsl:attribute-set&gt;
+</programlisting>
+</refsynopsisdiv>
+
+<refsection><info><title>Description</title></info>
+
+<para>The styling for margin note titles.</para>
+
+</refsection>
+</refentry>
+
+<refentry version="5.0" xml:id="margin.note.float.type">
+<refmeta>
+<refentrytitle>margin.note.float.type</refentrytitle>
+<refmiscinfo class="other" otherclass="datatype">list</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">none</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">before</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">left</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">start</refmiscinfo> 
+<refmiscinfo class="other" otherclass="value">right</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">end</refmiscinfo>     
+<refmiscinfo class="other" otherclass="value">inside</refmiscinfo>
+<refmiscinfo class="other" otherclass="value">outside</refmiscinfo> 
+</refmeta>
+<refnamediv>
+<refname>margin.note.float.type</refname>
+<refpurpose>Select type of float for margin note customizations</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+<programlisting xml:id="margin.note.float.type.frag">
+&lt;xsl:param name="margin.note.float.type"&gt;none&lt;/xsl:param&gt;
+</programlisting>
+</refsynopsisdiv>
+
+<refsection><info><title>Description</title></info>
+
+<para>Selects the type of float for margin notes.
+DocBook does not define a margin note element, so this
+feature must be implemented as a customization of the stylesheet.
+See <parameter>margin.note.properties</parameter> for
+an example.
+</para>
+<itemizedlist>
+<listitem>
+<para>If <parameter>margin.note.float.type</parameter> is
+<quote><literal>none</literal></quote>, then 
+no float is used.
+</para>
+</listitem>
+<listitem>
+<para>If 

@@ -1,0 +1,11 @@
+< typename Graph >
+struct is_mutable_edge_graph
+: mpl::and_< graph_has_add_edge< Graph >, graph_has_remove_edge< Graph > >
+{
+};
+
+template < typename Graph >
+struct is_mutable_edge_property_graph
+: mpl::and_< graph_has_add_edge_with_property< Graph >,
+      graph_has_remove_edge< Graph > >
+{
